@@ -47,7 +47,7 @@ const axios_1 = __importDefault(require("axios"));
 const bot_sdk_1 = require("@line/bot-sdk");
 const url_1 = require("url");
 // グローバル設定
-(0, v2_1.setGlobalOptions)({ region: "asia-northeast1" });
+(0, v2_1.setGlobalOptions)({ region: "asia-northeast2" });
 // Firebase Admin初期化
 admin.initializeApp();
 const db = admin.firestore();
@@ -379,7 +379,7 @@ exports.api = (0, https_1.onRequest)(app);
 // ============================
 /**
  * お菓子を消費する
- * リージョン: asia-northeast1（東京）
+ * リージョン: asia-northeast2（東京）
  */
 exports.eatCandy = (0, https_1.onRequest)(async (req, res) => {
     // CORSヘッダーを設定

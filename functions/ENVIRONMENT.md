@@ -85,7 +85,7 @@ npm run serve
 
 ```bash
 curl -X POST \
-  http://localhost:5001/YOUR_PROJECT_ID/asia-northeast1/createCustomToken \
+  http://localhost:5001/YOUR_PROJECT_ID/asia-northeast2/createCustomToken \
   -H 'Content-Type: application/json' \
   -d '{"idToken": "YOUR_LINE_ID_TOKEN"}'
 ```
@@ -94,7 +94,7 @@ curl -X POST \
 
 ```bash
 curl -X POST \
-  https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken \
+  https://asia-northeast2-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken \
   -H 'Content-Type: application/json' \
   -d '{"idToken": "YOUR_LINE_ID_TOKEN"}'
 ```

@@ -17,13 +17,13 @@ https://YOUR_REGION-YOUR_PROJECT_ID.cloudfunctions.net/
 LINE IDトークンをFirebaseカスタムトークンに変換します。
 
 - **エンドポイント**: `POST /createCustomToken`
-- **リージョン**: `asia-northeast1` (東京)
+- **リージョン**: `asia-northeast2` (東京)
 - **ドキュメント**: [API_CREATE_CUSTOM_TOKEN.md](./API_CREATE_CUSTOM_TOKEN.md)
 
 **使用例**:
 ```typescript
 const response = await fetch(
-  'https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken',
+  'https://asia-northeast2-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken',
   {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -249,7 +249,7 @@ firebase emulators:start
 
 ```bash
 # createCustomToken
-curl -X POST http://localhost:5001/YOUR_PROJECT_ID/asia-northeast1/createCustomToken \
+curl -X POST http://localhost:5001/YOUR_PROJECT_ID/asia-northeast2/createCustomToken \
   -H 'Content-Type: application/json' \
   -d '{"idToken":"YOUR_TOKEN"}'
 

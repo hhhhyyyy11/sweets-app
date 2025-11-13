@@ -9,7 +9,7 @@ import { Client, WebhookEvent, MessageEvent, TextMessage, validateSignature } fr
 import { URLSearchParams } from 'url';
 
 // グローバル設定
-setGlobalOptions({ region: "asia-northeast1" });
+setGlobalOptions({ region: "asia-northeast2" });
 
 // Firebase Admin初期化
 admin.initializeApp();
@@ -393,7 +393,7 @@ export const api = onRequest(app);
 
 /**
  * お菓子を消費する
- * リージョン: asia-northeast1（東京）
+ * リージョン: asia-northeast2（東京）
  */
 export const eatCandy = onRequest(async (req, res) => {
     // CORSヘッダーを設定

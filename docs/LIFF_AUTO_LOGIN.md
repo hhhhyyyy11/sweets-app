@@ -83,8 +83,8 @@ export const liffId = process.env.REACT_APP_LIFF_ID || "1234567890-abcdefgh";
 
 // createCustomToken APIエンドポイント
 export const createCustomTokenUrl = process.env.NODE_ENV === 'production'
-  ? "https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken"
-  : "http://localhost:5001/YOUR_PROJECT_ID/asia-northeast1/createCustomToken";
+  ? "https://asia-northeast2-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken"
+  : "http://localhost:5001/YOUR_PROJECT_ID/asia-northeast2/createCustomToken";
 ```
 
 **重要**: `YOUR_PROJECT_ID` を実際のFirebase プロジェクトIDに置き換えてください。

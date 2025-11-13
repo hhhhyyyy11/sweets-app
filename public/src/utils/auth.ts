@@ -15,8 +15,8 @@ import { auth } from '../firebase';
  */
 const CREATE_CUSTOM_TOKEN_URL =
   process.env.NODE_ENV === 'production'
-    ? 'https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken'
-    : 'http://localhost:5001/YOUR_PROJECT_ID/asia-northeast1/createCustomToken';
+    ? 'https://asia-northeast2-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken'
+    : 'http://localhost:5001/YOUR_PROJECT_ID/asia-northeast2/createCustomToken';
 
 /**
  * LIFFを使用してLINEログインし、Firebaseにサインインする

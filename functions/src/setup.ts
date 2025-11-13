@@ -15,7 +15,7 @@ import { setGlobalOptions } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 
 // グローバル設定
-setGlobalOptions({ region: "asia-northeast1" });
+setGlobalOptions({ region: "asia-northeast2" });
 
 /**
  * 初期データをセットアップする Cloud Function

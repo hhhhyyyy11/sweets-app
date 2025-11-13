@@ -20,9 +20,9 @@ export const apiEndpoint = process.env.NODE_ENV === 'production'
 // createCustomToken API Endpoint
 export const createCustomTokenUrl = process.env.NODE_ENV === 'production'
   ? `https://createcustomtoken-esh2ztzevq-an.a.run.app`
-  : `http://localhost:5001/${projectId}/asia-northeast1/createCustomToken`;
+  : `http://localhost:5001/${projectId}/asia-northeast2/createCustomToken`;
 
 // eatCandy API Endpoint
 export const eatCandyUrl = process.env.NODE_ENV === 'production'
   ? `https://eatcandy-esh2ztzevq-an.a.run.app`
-  : `http://localhost:5001/${projectId}/asia-northeast1/eatCandy`;
+  : `http://localhost:5001/${projectId}/asia-northeast2/eatCandy`;

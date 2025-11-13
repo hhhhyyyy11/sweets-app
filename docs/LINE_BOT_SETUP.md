@@ -22,7 +22,7 @@ LINE Developersコンソールから以下の情報を取得してください:
 デプロイ後のWebhook URLは以下の形式になります:
 
 ```
-https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/lineBotWebhook
+https://asia-northeast2-YOUR_PROJECT_ID.cloudfunctions.net/lineBotWebhook
 ```
 
 `YOUR_PROJECT_ID`は、あなたのFirebaseプロジェクトIDに置き換えてください。
@@ -74,7 +74,7 @@ firebase deploy --only functions:lineBotWebhook
 デプロイが成功すると、以下のようなURLが表示されます:
 
 ```
-Function URL (lineBotWebhook): https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/lineBotWebhook
+Function URL (lineBotWebhook): https://asia-northeast2-YOUR_PROJECT_ID.cloudfunctions.net/lineBotWebhook
 ```
 
 このURLをコピーしてください。
@@ -174,7 +174,7 @@ Webhook verification failed
 
 **対処法:**
 1. Firebase Consoleで関数がデプロイされていることを確認
-2. URLが正しいことを確認（特にリージョン`asia-northeast1`）
+2. URLが正しいことを確認（特にリージョン`asia-northeast2`）
 3. Cloud Functionsのログを確認
 
 ## 7. ログの確認

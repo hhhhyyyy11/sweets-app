@@ -8,10 +8,10 @@
 ## エンドポイント
 
 ```
-POST https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken
+POST https://asia-northeast2-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken
 ```
 
-**リージョン**: `asia-northeast1` (東京)
+**リージョン**: `asia-northeast2` (東京)
 
 ## リクエスト
 
@@ -112,7 +112,7 @@ async function loginWithLINE() {
 
     // 2. createCustomToken APIを呼び出し
     const response = await fetch(
-      'https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken',
+      'https://asia-northeast2-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken',
       {
         method: 'POST',
         headers: {
@@ -146,7 +146,7 @@ async function loginWithLINE() {
 
 ```bash
 curl -X POST \
-  https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken \
+  https://asia-northeast2-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken \
   -H 'Content-Type: application/json' \
   -d '{
     "idToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."

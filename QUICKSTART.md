@@ -79,8 +79,8 @@ REACT_APP_LIFF_ID=1234567890-abcdefgh
 
 ```typescript
 export const createCustomTokenUrl = process.env.NODE_ENV === 'production'
-  ? "https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken"
-  : "http://localhost:5001/YOUR_PROJECT_ID/asia-northeast1/createCustomToken";
+  ? "https://asia-northeast2-YOUR_PROJECT_ID.cloudfunctions.net/createCustomToken"
+  : "http://localhost:5001/YOUR_PROJECT_ID/asia-northeast2/createCustomToken";
 ```
 
 ### ステップ4️⃣: 依存関係のインストール

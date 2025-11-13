@@ -72,7 +72,7 @@ firebase deploy --only functions:monthlyReminder
 デプロイが成功すると、以下のようなメッセージが表示されます:
 
 ```
-✔  functions[asia-northeast1-monthlyReminder]: Successful create operation.
+✔  functions[asia-northeast2-monthlyReminder]: Successful create operation.
 ```
 
 ### 4. Cloud Schedulerの確認
@@ -81,7 +81,7 @@ Google Cloud Consoleで確認:
 
 1. [Cloud Scheduler](https://console.cloud.google.com/cloudscheduler)にアクセス
 2. プロジェクトを選択
-3. `firebase-schedule-monthlyReminder-asia-northeast1`というジョブが作成されていることを確認
+3. `firebase-schedule-monthlyReminder-asia-northeast2`というジョブが作成されていることを確認
 
 ## 動作確認
 
@@ -92,14 +92,14 @@ Cloud Schedulerから手動で実行してテストできます:
 #### 方法1: Google Cloud Console
 
 1. Cloud Schedulerのページを開く
-2. `firebase-schedule-monthlyReminder-asia-northeast1`を選択
+2. `firebase-schedule-monthlyReminder-asia-northeast2`を選択
 3. 「今すぐ実行」をクリック
 
 #### 方法2: gcloud CLI
 
 ```bash
-gcloud scheduler jobs run firebase-schedule-monthlyReminder-asia-northeast1 \
-  --location=asia-northeast1 \
+gcloud scheduler jobs run firebase-schedule-monthlyReminder-asia-northeast2 \
+  --location=asia-northeast2 \
   --project=YOUR_PROJECT_ID
 ```
 

@@ -49,7 +49,7 @@ const https_1 = require("firebase-functions/v2/https");
 const v2_1 = require("firebase-functions/v2");
 const admin = __importStar(require("firebase-admin"));
 // グローバル設定
-(0, v2_1.setGlobalOptions)({ region: "asia-northeast1" });
+(0, v2_1.setGlobalOptions)({ region: "asia-northeast2" });
 /**
  * 初期データをセットアップする Cloud Function
  *
