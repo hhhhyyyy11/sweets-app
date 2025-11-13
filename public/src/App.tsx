@@ -27,6 +27,13 @@ const App: React.FC = () => {
 
   const initializeApp = useCallback(async () => {
     try {
+      // LIFF IDが設定されていない場合はWeb環境として動作
+      if (!liffId || liffId === 'YOUR_LIFF_ID') {
+        console.log('LIFF ID not configured, running in Web mode');
+        setupFirebaseAuthListener();
+        return;
+      }
+
       // LIFF初期化
       await liff.init({ liffId });
 
@@ -43,8 +50,7 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.error('LIFF initialization failed:', error);
-      setError('初期化に失敗しました');
-      setLoading(false);
+      console.log('Falling back to Web mode');
 
       // LIFF環境でない場合は通常のWeb環境として処理
       setupFirebaseAuthListener();
@@ -118,6 +124,9 @@ const App: React.FC = () => {
   };
 
   const setupFirebaseAuthListener = () => {
+    // エラー状態をクリア
+    setError('');
+
     // Firebase認証状態監視
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
