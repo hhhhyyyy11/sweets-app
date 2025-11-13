@@ -14,15 +14,15 @@ export const liffId = process.env.REACT_APP_LIFF_ID || "YOUR_LIFF_ID";
 // API Endpoint
 const projectId = process.env.REACT_APP_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID";
 export const apiEndpoint = process.env.NODE_ENV === 'production'
-  ? `https://api-esh2ztzevq-an.a.run.app`
+  ? `https://asia-northeast2-tamaki-sweets.cloudfunctions.net/api`
   : `http://localhost:5001/${projectId}/us-central1/api`;
 
 // createCustomToken API Endpoint
 export const createCustomTokenUrl = process.env.NODE_ENV === 'production'
-  ? `https://createcustomtoken-esh2ztzevq-an.a.run.app`
+  ? `https://asia-northeast2-tamaki-sweets.cloudfunctions.net/createCustomToken`
   : `http://localhost:5001/${projectId}/asia-northeast2/createCustomToken`;
 
 // eatCandy API Endpoint
 export const eatCandyUrl = process.env.NODE_ENV === 'production'
-  ? `https://eatcandy-esh2ztzevq-an.a.run.app`
+  ? `https://asia-northeast2-tamaki-sweets.cloudfunctions.net/eatCandy`
   : `http://localhost:5001/${projectId}/asia-northeast2/eatCandy`;
