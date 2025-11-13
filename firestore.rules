@@ -1,0 +1,159 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ============================
+    // ヘルパー関数
+    // ============================
+
+    // ユーザー認証チェック
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 管理者チェック
+    function isAdmin() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // 本人確認
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ============================
+    // users コレクション
+    // ============================
+    // DocID: LINE UserID
+    // フィールド:
+    //   - lineUserId (string): LINEユーザーID
+    //   - displayName (string): 表示名
+    //   - pictureUrl (string): プロフィール画像URL
+    //   - email (string): メールアドレス
+    //   - role (string): 'admin' | 'user'
+    //   - currentBalance (number): 未払い額（負の値）
+    //   - createdAt (Timestamp): 作成日時
+    //   - updatedAt (Timestamp): 更新日時
+    match /users/{userId} {
+      // 全認証済みユーザーが読み取り可能
+      allow read: if isAuthenticated();
+
+      // 新規作成: 認証済みで、自分のドキュメントのみ
+      allow create: if isOwner(userId);
+
+      // 更新: 本人または管理者のみ
+      // 本人の場合はroleフィールドは変更不可
+      allow update: if isOwner(userId) &&
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) ||
+                       isAdmin();
+
+      // 削除: 管理者のみ
+      allow delete: if isAdmin();
+    }
+
+    // ============================
+    // candies コレクション（お菓子マスタ）
+    // ============================
+    // DocID: 自動生成
+    // フィールド:
+    //   - name (string): お菓子名
+    //   - description (string): 説明
+    //   - imageUrl (string): 画像URL
+    //   - price (number): 価格
+    //   - stock (number): 在庫数
+    //   - isActive (boolean): 有効/無効
+    //   - createdAt (Timestamp): 作成日時
+    //   - updatedAt (Timestamp): 更新日時
+    match /candies/{candyId} {
+      // 全認証済みユーザーが読み取り可能
+      allow read: if isAuthenticated();
+
+      // 作成・更新・削除: 管理者のみ
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ============================
+    // eatingHistory コレクション（消費履歴）
+    // ============================
+    // DocID: 自動生成
+    // フィールド:
+    //   - userId (string): usersのDocID
+    //   - candyId (string): candiesのDocID
+    //   - candyName (string): お菓子名（スナップショット）
+    //   - quantity (number): 消費数量
+    //   - priceAtTime (number): 消費時の価格
+    //   - timestamp (Timestamp): 消費日時
+    match /eatingHistory/{historyId} {
+      // 全認証済みユーザーが読み取り可能
+      allow read: if isAuthenticated();
+
+      // 作成: 認証済みユーザー（自分のuserIdのみ）
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid;
+
+      // 更新・削除: 管理者のみ
+      allow update, delete: if isAdmin();
+    }
+
+    // ============================
+    // requests コレクション（リクエスト）
+    // ============================
+    // DocID: 自動生成
+    // フィールド:
+    //   - userId (string): usersのDocID
+    //   - candyName (string): リクエストするお菓子名
+    //   - description (string): 説明・理由
+    //   - status (string): 'requested' | 'purchased' | 'rejected'
+    //   - timestamp (Timestamp): リクエスト日時
+    //   - processedAt (Timestamp): 処理日時（optional）
+    //   - processedBy (string): 処理者のuserId（optional）
+    match /requests/{requestId} {
+      // 全認証済みユーザーが読み取り可能
+      allow read: if isAuthenticated();
+
+      // 作成: 認証済みユーザー（自分のuserIdのみ、status='requested'のみ）
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.status == 'requested';
+
+      // 更新: 本人（statusは'requested'のみ）または管理者
+      allow update: if (isOwner(resource.data.userId) &&
+                        resource.data.status == 'requested') ||
+                       isAdmin();
+
+      // 削除: 本人または管理者
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // ============================
+    // 後方互換性のための既存コレクション
+    // ============================
+
+    // sweets コレクション（candiesに移行予定）
+    match /sweets/{sweetId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // consumptionHistory コレクション（eatingHistoryに移行予定）
+    match /consumptionHistory/{historyId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // stockHistory コレクション
+    match /stockHistory/{historyId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // notifications コレクション
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
