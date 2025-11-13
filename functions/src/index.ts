@@ -1,18 +1,23 @@
-import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { onRequest } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { setGlobalOptions } from "firebase-functions/v2";
 import express from "express";
 import cors from "cors";
 import axios from "axios";
 import { Client, WebhookEvent, MessageEvent, TextMessage, validateSignature } from "@line/bot-sdk";
 
+// グローバル設定
+setGlobalOptions({ region: "asia-northeast1" });
+
 // Firebase Admin初期化
 admin.initializeApp();
 const db = admin.firestore();
 
-// LINE Bot設定
+// LINE Bot設定 (デプロイ時はダミー値、実行時に環境変数から取得)
 const lineConfig = {
-  channelAccessToken: functions.config().line?.channel_access_token || process.env.LINE_CHANNEL_ACCESS_TOKEN || "",
-  channelSecret: functions.config().line?.channel_secret || process.env.LINE_CHANNEL_SECRET || "",
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || "DUMMY_TOKEN_FOR_DEPLOYMENT",
+  channelSecret: process.env.LINE_CHANNEL_SECRET || "DUMMY_SECRET_FOR_DEPLOYMENT",
 };
 
 const lineClient = new Client(lineConfig);
@@ -25,7 +30,7 @@ app.use(express.json());
 // ============================
 // LINE Bot Webhook
 // ============================
-export const lineWebhook = functions.https.onRequest(async (req, res) => {
+export const lineWebhook = onRequest(async (req, res) => {
   if (req.method !== "POST") {
     res.status(405).send("Method Not Allowed");
     return;
@@ -379,7 +384,7 @@ app.get("/users", async (req, res) => {
   }
 });
 
-export const api = functions.https.onRequest(app);
+export const api = onRequest(app);
 
 // ============================
 // お菓子消費API (eatCandy)
@@ -389,9 +394,7 @@ export const api = functions.https.onRequest(app);
  * お菓子を消費する
  * リージョン: asia-northeast1（東京）
  */
-export const eatCandy = functions
-  .region("asia-northeast1")
-  .https.onRequest(async (req, res) => {
+export const eatCandy = onRequest(async (req, res) => {
     // CORSヘッダーを設定
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -559,7 +562,10 @@ export const eatCandy = functions
 // ============================
 
 // LINE Login チャネルID（環境変数から取得）
-const LINE_LOGIN_CHANNEL_ID = functions.config().line?.login_channel_id || process.env.LINE_LOGIN_CHANNEL_ID || "";
+const LINE_LOGIN_CHANNEL_ID = process.env.LINE_LOGIN_CHANNEL_ID || "";
+// 将来の使用のために保持（現在は未使用）
+// @ts-ignore
+const LINE_LOGIN_CHANNEL_SECRET = process.env.LINE_LOGIN_CHANNEL_SECRET || "";
 
 // LINE IDトークン検証エンドポイント
 const LINE_TOKEN_VERIFY_URL = "https://api.line.me/oauth2/v2.1/verify";
@@ -568,9 +574,7 @@ const LINE_TOKEN_VERIFY_URL = "https://api.line.me/oauth2/v2.1/verify";
  * LINEのIDトークンを検証し、Firebaseのカスタムトークンを生成する
  * リージョン: asia-northeast1（東京）
  */
-export const createCustomToken = functions
-  .region("asia-northeast1")
-  .https.onRequest(async (req, res) => {
+export const createCustomToken = onRequest(async (req, res) => {
     // CORSヘッダーを設定
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -698,32 +702,30 @@ export const createCustomToken = functions
 // ============================
 // LINE Bot Webhook (Messaging API)
 // ============================
-export const lineBotWebhook = functions
-  .region("asia-northeast1")
-  .https.onRequest(async (req, res) => {
-    // POSTメソッドのみ許可
-    if (req.method !== "POST") {
-      res.status(405).json({ error: "Method Not Allowed" });
-      return;
-    }
+export const lineBotWebhook = onRequest(async (req, res) => {
+  // POSTメソッドのみ許可
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method Not Allowed" });
+    return;
+  }
 
-    // LINE署名検証
-    const signature = req.headers["x-line-signature"] as string;
+  // LINE署名検証
+  const signature = req.headers["x-line-signature"] as string;
 
-    if (!signature) {
-      console.error("Missing LINE signature");
-      res.status(401).json({ error: "Missing signature" });
-      return;
-    }
+  if (!signature) {
+    console.error("Missing LINE signature");
+    res.status(401).json({ error: "Missing signature" });
+    return;
+  }
 
-    // 署名検証のための設定
-    const channelSecret = functions.config().line?.channel_secret || "";
+  // 署名検証のための設定
+  const channelSecret = process.env.LINE_CHANNEL_SECRET || "";
 
-    if (!channelSecret) {
-      console.error("LINE Channel Secret is not configured");
-      res.status(500).json({ error: "Server configuration error" });
-      return;
-    }
+  if (!channelSecret) {
+    console.error("LINE Channel Secret is not configured");
+    res.status(500).json({ error: "Server configuration error" });
+    return;
+  }
 
     // リクエストボディを文字列として取得
     const bodyString = JSON.stringify(req.body);
@@ -837,104 +839,101 @@ async function handleBotEvent(event: WebhookEvent): Promise<void> {
  * 毎月1日午前9時（日本時間）に実行
  * 未払いのあるユーザーにLINEでプッシュ通知を送信
  */
-export const monthlyReminder = functions
-  .region("asia-northeast1")
-  .pubsub.schedule("0 0 1 * *") // 毎月1日の午前0時（UTC）に実行
-  .timeZone("Asia/Tokyo") // 日本時間で実行
-  .onRun(async (context) => {
-    console.log("Monthly reminder started");
+export const monthlyReminder = onSchedule({
+  schedule: "0 0 1 * *", // 毎月1日の午前0時（UTC）に実行
+  timeZone: "Asia/Tokyo", // 日本時間で実行
+}, async (event) => {
+  console.log("Monthly reminder started");
 
-    try {
-      // usersコレクションから全ユーザーを取得
-      const usersSnapshot = await db.collection("users").get();
+  try {
+    // usersコレクションから全ユーザーを取得
+    const usersSnapshot = await db.collection("users").get();
 
-      if (usersSnapshot.empty) {
-        console.log("No users found");
-        return null;
-      }
-
-      console.log(`Total users: ${usersSnapshot.size}`);
-
-      // 未払いのあるユーザーを抽出
-      const unpaidUsers: Array<{
-        userId: string;
-        lineUserId: string;
-        displayName: string;
-        currentBalance: number;
-      }> = [];
-
-      usersSnapshot.forEach((doc) => {
-        const userData = doc.data();
-        const currentBalance = userData.currentBalance || 0;
-
-        // currentBalanceが0より大きい（未払いがある）ユーザーを抽出
-        if (currentBalance > 0 && userData.lineUserId) {
-          unpaidUsers.push({
-            userId: doc.id,
-            lineUserId: userData.lineUserId,
-            displayName: userData.displayName || "ユーザー",
-            currentBalance: currentBalance,
-          });
-        }
-      });
-
-      console.log(`Unpaid users found: ${unpaidUsers.length}`);
-
-      if (unpaidUsers.length === 0) {
-        console.log("No unpaid users found");
-        return null;
-      }
-
-      // 各ユーザーにLINEでプッシュ通知を送信
-      const sendPromises = unpaidUsers.map(async (user) => {
-        try {
-          const message = `📊 月次集計のお知らせ\n\n${user.displayName}さん\n今月の未払い額は ${user.currentBalance}円 です。\n\nお支払いをお願いいたします。`;
-
-          await lineClient.pushMessage(user.lineUserId, {
-            type: "text",
-            text: message,
-          });
-
-          console.log(`Reminder sent to ${user.displayName} (¥${user.currentBalance})`);
-
-          return {
-            success: true,
-            userId: user.userId,
-            amount: user.currentBalance,
-          };
-        } catch (error) {
-          console.error(`Error sending reminder to ${user.displayName}:`, error);
-
-          return {
-            success: false,
-            userId: user.userId,
-            amount: user.currentBalance,
-            error: error,
-          };
-        }
-      });
-
-      // すべての送信を並列実行
-      const results = await Promise.all(sendPromises);
-
-      // 結果の集計
-      const successCount = results.filter((r) => r.success).length;
-      const failureCount = results.filter((r) => !r.success).length;
-      const totalAmount = results.reduce((sum, r) => sum + r.amount, 0);
-
-      console.log("Monthly reminder completed");
-      console.log(`Success: ${successCount}, Failure: ${failureCount}`);
-      console.log(`Total unpaid amount: ¥${totalAmount}`);
-
-      // 管理者に結果を通知（オプション）
-      await notifyAdminsAboutReminder(successCount, failureCount, totalAmount);
-
-      return null;
-    } catch (error) {
-      console.error("Error in monthly reminder:", error);
-      throw error;
+    if (usersSnapshot.empty) {
+      console.log("No users found");
+      return;
     }
-  });
+
+    console.log(`Total users: ${usersSnapshot.size}`);
+
+    // 未払いのあるユーザーを抽出
+    const unpaidUsers: Array<{
+      userId: string;
+      lineUserId: string;
+      displayName: string;
+      currentBalance: number;
+    }> = [];
+
+    usersSnapshot.forEach((doc) => {
+      const userData = doc.data();
+      const currentBalance = userData.currentBalance || 0;
+
+      // currentBalanceが0より大きい（未払いがある）ユーザーを抽出
+      if (currentBalance > 0 && userData.lineUserId) {
+        unpaidUsers.push({
+          userId: doc.id,
+          lineUserId: userData.lineUserId,
+          displayName: userData.displayName || "ユーザー",
+          currentBalance: currentBalance,
+        });
+      }
+    });
+
+    console.log(`Unpaid users found: ${unpaidUsers.length}`);
+
+    if (unpaidUsers.length === 0) {
+      console.log("No unpaid users found");
+      return;
+    }
+
+    // 各ユーザーにLINEでプッシュ通知を送信
+    const sendPromises = unpaidUsers.map(async (user) => {
+      try {
+        const message = `📊 月次集計のお知らせ\n\n${user.displayName}さん\n今月の未払い額は ${user.currentBalance}円 です。\n\nお支払いをお願いいたします。`;
+
+        await lineClient.pushMessage(user.lineUserId, {
+          type: "text",
+          text: message,
+        });
+
+        console.log(`Reminder sent to ${user.displayName} (¥${user.currentBalance})`);
+
+        return {
+          success: true,
+          userId: user.userId,
+          amount: user.currentBalance,
+        };
+      } catch (error) {
+        console.error(`Error sending reminder to ${user.displayName}:`, error);
+
+        return {
+          success: false,
+          userId: user.userId,
+          amount: user.currentBalance,
+          error: error,
+        };
+      }
+    });
+
+    // すべての送信を並列実行
+    const results = await Promise.all(sendPromises);
+
+    // 結果の集計
+    const successCount = results.filter((r) => r.success).length;
+    const failureCount = results.filter((r) => !r.success).length;
+    const totalAmount = results.reduce((sum, r) => sum + r.amount, 0);
+
+    console.log("Monthly reminder completed");
+    console.log(`Success: ${successCount}, Failure: ${failureCount}`);
+    console.log(`Total unpaid amount: ¥${totalAmount}`);
+
+    // 管理者に結果を通知（オプション）
+    await notifyAdminsAboutReminder(successCount, failureCount, totalAmount);
+  } catch (error) {
+    console.error("Error in monthly reminder:", error);
+    throw error;
+  }
+});
 
 /**
  * 管理者にリマインダー送信結果を通知

@@ -45,17 +45,17 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.migrateFromSweetsToCandies = exports.resetDatabase = exports.setupInitialData = void 0;
-const functions = __importStar(require("firebase-functions"));
+const https_1 = require("firebase-functions/v2/https");
+const v2_1 = require("firebase-functions/v2");
 const admin = __importStar(require("firebase-admin"));
+// グローバル設定
+(0, v2_1.setGlobalOptions)({ region: "asia-northeast1" });
 /**
  * 初期データをセットアップする Cloud Function
  *
  * HTTPトリガーで実行可能（セキュリティのため本番では削除推奨）
  */
-exports.setupInitialData = functions
-    .region('asia-northeast1')
-    .https.onRequest(async (req, res) => {
-    var _a;
+exports.setupInitialData = (0, https_1.onRequest)(async (req, res) => {
     // POSTリクエストのみ受け付け
     if (req.method !== 'POST') {
         res.status(405).send('Method Not Allowed');
@@ -63,7 +63,7 @@ exports.setupInitialData = functions
     }
     // 簡易的な認証（本番環境では削除または強化してください）
     const { secret } = req.body;
-    const expectedSecret = ((_a = functions.config().setup) === null || _a === void 0 ? void 0 : _a.secret) || 'SETUP_SECRET_KEY';
+    const expectedSecret = process.env.SETUP_SECRET || 'SETUP_SECRET_KEY';
     if (secret !== expectedSecret) {
         res.status(401).send('Unauthorized');
         return;
@@ -162,9 +162,7 @@ exports.setupInitialData = functions
  *
  * ⚠️ 警告: 全データが削除されます。本番環境では絶対に使用しないでください
  */
-exports.resetDatabase = functions
-    .region('asia-northeast1')
-    .https.onRequest(async (req, res) => {
+exports.resetDatabase = (0, https_1.onRequest)(async (req, res) => {
     // 環境チェック
     if (process.env.FUNCTIONS_EMULATOR !== 'true') {
         res.status(403).send('This function can only be run in emulator');
@@ -205,9 +203,7 @@ exports.resetDatabase = functions
 /**
  * sweetsコレクションからcandiesコレクションへのデータ移行
  */
-exports.migrateFromSweetsToCandies = functions
-    .region('asia-northeast1')
-    .https.onRequest(async (req, res) => {
+exports.migrateFromSweetsToCandies = (0, https_1.onRequest)(async (req, res) => {
     if (req.method !== 'POST') {
         res.status(405).send('Method Not Allowed');
         return;

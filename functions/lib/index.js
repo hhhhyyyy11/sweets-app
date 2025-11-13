@@ -35,22 +35,25 @@ var __importStar = (this && this.__importStar) || (function () {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlyReminder = exports.lineBotWebhook = exports.createCustomToken = exports.eatCandy = exports.api = exports.lineWebhook = void 0;
-const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
+const https_1 = require("firebase-functions/v2/https");
+const scheduler_1 = require("firebase-functions/v2/scheduler");
+const v2_1 = require("firebase-functions/v2");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const axios_1 = __importDefault(require("axios"));
 const bot_sdk_1 = require("@line/bot-sdk");
+// グローバル設定
+(0, v2_1.setGlobalOptions)({ region: "asia-northeast1" });
 // Firebase Admin初期化
 admin.initializeApp();
 const db = admin.firestore();
-// LINE Bot設定
+// LINE Bot設定 (デプロイ時はダミー値、実行時に環境変数から取得)
 const lineConfig = {
-    channelAccessToken: ((_a = functions.config().line) === null || _a === void 0 ? void 0 : _a.channel_access_token) || process.env.LINE_CHANNEL_ACCESS_TOKEN || "",
-    channelSecret: ((_b = functions.config().line) === null || _b === void 0 ? void 0 : _b.channel_secret) || process.env.LINE_CHANNEL_SECRET || "",
+    channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || "DUMMY_TOKEN_FOR_DEPLOYMENT",
+    channelSecret: process.env.LINE_CHANNEL_SECRET || "DUMMY_SECRET_FOR_DEPLOYMENT",
 };
 const lineClient = new bot_sdk_1.Client(lineConfig);
 // Express設定
@@ -60,7 +63,7 @@ app.use(express_1.default.json());
 // ============================
 // LINE Bot Webhook
 // ============================
-exports.lineWebhook = functions.https.onRequest(async (req, res) => {
+exports.lineWebhook = (0, https_1.onRequest)(async (req, res) => {
     if (req.method !== "POST") {
         res.status(405).send("Method Not Allowed");
         return;
@@ -369,7 +372,7 @@ app.get("/users", async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
-exports.api = functions.https.onRequest(app);
+exports.api = (0, https_1.onRequest)(app);
 // ============================
 // お菓子消費API (eatCandy)
 // ============================
@@ -377,9 +380,7 @@ exports.api = functions.https.onRequest(app);
  * お菓子を消費する
  * リージョン: asia-northeast1（東京）
  */
-exports.eatCandy = functions
-    .region("asia-northeast1")
-    .https.onRequest(async (req, res) => {
+exports.eatCandy = (0, https_1.onRequest)(async (req, res) => {
     // CORSヘッダーを設定
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -527,16 +528,17 @@ exports.eatCandy = functions
 // LINE IDトークン → Firebaseカスタムトークン変換API
 // ============================
 // LINE Login チャネルID（環境変数から取得）
-const LINE_LOGIN_CHANNEL_ID = ((_c = functions.config().line) === null || _c === void 0 ? void 0 : _c.login_channel_id) || process.env.LINE_LOGIN_CHANNEL_ID || "";
+const LINE_LOGIN_CHANNEL_ID = process.env.LINE_LOGIN_CHANNEL_ID || "";
+// 将来の使用のために保持（現在は未使用）
+// @ts-ignore
+const LINE_LOGIN_CHANNEL_SECRET = process.env.LINE_LOGIN_CHANNEL_SECRET || "";
 // LINE IDトークン検証エンドポイント
 const LINE_TOKEN_VERIFY_URL = "https://api.line.me/oauth2/v2.1/verify";
 /**
  * LINEのIDトークンを検証し、Firebaseのカスタムトークンを生成する
  * リージョン: asia-northeast1（東京）
  */
-exports.createCustomToken = functions
-    .region("asia-northeast1")
-    .https.onRequest(async (req, res) => {
+exports.createCustomToken = (0, https_1.onRequest)(async (req, res) => {
     // CORSヘッダーを設定
     res.set("Access-Control-Allow-Origin", "*");
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -645,10 +647,7 @@ exports.createCustomToken = functions
 // ============================
 // LINE Bot Webhook (Messaging API)
 // ============================
-exports.lineBotWebhook = functions
-    .region("asia-northeast1")
-    .https.onRequest(async (req, res) => {
-    var _a;
+exports.lineBotWebhook = (0, https_1.onRequest)(async (req, res) => {
     // POSTメソッドのみ許可
     if (req.method !== "POST") {
         res.status(405).json({ error: "Method Not Allowed" });
@@ -662,7 +661,7 @@ exports.lineBotWebhook = functions
         return;
     }
     // 署名検証のための設定
-    const channelSecret = ((_a = functions.config().line) === null || _a === void 0 ? void 0 : _a.channel_secret) || "";
+    const channelSecret = process.env.LINE_CHANNEL_SECRET || "";
     if (!channelSecret) {
         console.error("LINE Channel Secret is not configured");
         res.status(500).json({ error: "Server configuration error" });
@@ -767,18 +766,17 @@ async function handleBotEvent(event) {
  * 毎月1日午前9時（日本時間）に実行
  * 未払いのあるユーザーにLINEでプッシュ通知を送信
  */
-exports.monthlyReminder = functions
-    .region("asia-northeast1")
-    .pubsub.schedule("0 0 1 * *") // 毎月1日の午前0時（UTC）に実行
-    .timeZone("Asia/Tokyo") // 日本時間で実行
-    .onRun(async (context) => {
+exports.monthlyReminder = (0, scheduler_1.onSchedule)({
+    schedule: "0 0 1 * *", // 毎月1日の午前0時（UTC）に実行
+    timeZone: "Asia/Tokyo", // 日本時間で実行
+}, async (event) => {
     console.log("Monthly reminder started");
     try {
         // usersコレクションから全ユーザーを取得
         const usersSnapshot = await db.collection("users").get();
         if (usersSnapshot.empty) {
             console.log("No users found");
-            return null;
+            return;
         }
         console.log(`Total users: ${usersSnapshot.size}`);
         // 未払いのあるユーザーを抽出
@@ -799,7 +797,7 @@ exports.monthlyReminder = functions
         console.log(`Unpaid users found: ${unpaidUsers.length}`);
         if (unpaidUsers.length === 0) {
             console.log("No unpaid users found");
-            return null;
+            return;
         }
         // 各ユーザーにLINEでプッシュ通知を送信
         const sendPromises = unpaidUsers.map(async (user) => {
@@ -837,7 +835,6 @@ exports.monthlyReminder = functions
         console.log(`Total unpaid amount: ¥${totalAmount}`);
         // 管理者に結果を通知（オプション）
         await notifyAdminsAboutReminder(successCount, failureCount, totalAmount);
-        return null;
     }
     catch (error) {
         console.error("Error in monthly reminder:", error);

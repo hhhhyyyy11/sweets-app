@@ -10,34 +10,36 @@
  * 注意: このスクリプトは初回のみ実行してください
  */
 
-import * as functions from 'firebase-functions';
+import { onRequest } from 'firebase-functions/v2/https';
+import { setGlobalOptions } from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
+
+// グローバル設定
+setGlobalOptions({ region: "asia-northeast1" });
 
 /**
  * 初期データをセットアップする Cloud Function
  *
  * HTTPトリガーで実行可能（セキュリティのため本番では削除推奨）
  */
-export const setupInitialData = functions
-  .region('asia-northeast1')
-  .https.onRequest(async (req, res) => {
-    // POSTリクエストのみ受け付け
-    if (req.method !== 'POST') {
-      res.status(405).send('Method Not Allowed');
-      return;
-    }
+export const setupInitialData = onRequest(async (req, res) => {
+  // POSTリクエストのみ受け付け
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
 
-    // 簡易的な認証（本番環境では削除または強化してください）
-    const { secret } = req.body;
-    const expectedSecret = functions.config().setup?.secret || 'SETUP_SECRET_KEY';
+  // 簡易的な認証（本番環境では削除または強化してください）
+  const { secret } = req.body;
+  const expectedSecret = process.env.SETUP_SECRET || 'SETUP_SECRET_KEY';
 
-    if (secret !== expectedSecret) {
-      res.status(401).send('Unauthorized');
-      return;
-    }
+  if (secret !== expectedSecret) {
+    res.status(401).send('Unauthorized');
+    return;
+  }
 
-    try {
-      const db = admin.firestore();
+  try {
+    const db = admin.firestore();
 
       // ============================
       // サンプルお菓子データ
@@ -139,63 +141,59 @@ export const setupInitialData = functions
  *
  * ⚠️ 警告: 全データが削除されます。本番環境では絶対に使用しないでください
  */
-export const resetDatabase = functions
-  .region('asia-northeast1')
-  .https.onRequest(async (req, res) => {
-    // 環境チェック
-    if (process.env.FUNCTIONS_EMULATOR !== 'true') {
-      res.status(403).send('This function can only be run in emulator');
-      return;
-    }
+export const resetDatabase = onRequest(async (req, res) => {
+  // 環境チェック
+  if (process.env.FUNCTIONS_EMULATOR !== 'true') {
+    res.status(403).send('This function can only be run in emulator');
+    return;
+  }
 
-    if (req.method !== 'POST') {
-      res.status(405).send('Method Not Allowed');
-      return;
-    }
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
 
-    try {
-      const db = admin.firestore();
+  try {
+    const db = admin.firestore();
 
-      // 全コレクションを削除
-      const collections = ['users', 'candies', 'eatingHistory', 'requests', 'sweets', 'consumptionHistory', 'stockHistory'];
+    // 全コレクションを削除
+    const collections = ['users', 'candies', 'eatingHistory', 'requests', 'sweets', 'consumptionHistory', 'stockHistory'];
 
-      for (const collectionName of collections) {
-        const snapshot = await db.collection(collectionName).get();
-        const batch = db.batch();
+    for (const collectionName of collections) {
+      const snapshot = await db.collection(collectionName).get();
+      const batch = db.batch();
 
-        snapshot.docs.forEach(doc => {
-          batch.delete(doc.ref);
-        });
-
-        await batch.commit();
-        console.log(`✅ Deleted ${snapshot.size} documents from ${collectionName}`);
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Database reset completed',
-        deletedCollections: collections,
+      snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
       });
 
-    } catch (error: any) {
-      console.error('Error resetting database:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to reset database',
-        details: error.message,
-      });
+      await batch.commit();
+      console.log(`✅ Deleted ${snapshot.size} documents from ${collectionName}`);
     }
-  });
+
+    res.status(200).json({
+      success: true,
+      message: 'Database reset completed',
+      deletedCollections: collections,
+    });
+
+  } catch (error: any) {
+    console.error('Error resetting database:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reset database',
+      details: error.message,
+    });
+  }
+});
 
 /**
  * sweetsコレクションからcandiesコレクションへのデータ移行
  */
-export const migrateFromSweetsToCandies = functions
-  .region('asia-northeast1')
-  .https.onRequest(async (req, res) => {
-    if (req.method !== 'POST') {
-      res.status(405).send('Method Not Allowed');
-      return;
+export const migrateFromSweetsToCandies = onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
     }
 
     try {
