@@ -1,11 +1,12 @@
 import * as admin from "firebase-admin";
 import { onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { setGlobalOptions } from "firebase-functions/v2";
+import { logger, setGlobalOptions } from "firebase-functions/v2";
 import express from "express";
 import cors from "cors";
 import axios from "axios";
 import { Client, WebhookEvent, MessageEvent, TextMessage, validateSignature } from "@line/bot-sdk";
+import { URLSearchParams } from 'url';
 
 // グローバル設定
 setGlobalOptions({ region: "asia-northeast1" });
@@ -557,147 +558,107 @@ export const eatCandy = onRequest(async (req, res) => {
     }
   });
 
-// ============================
-// LINE IDトークン → Firebaseカスタムトークン変換API
-// ============================
-
-// LINE Login チャネルID（環境変数から取得）
-const LINE_LOGIN_CHANNEL_ID = process.env.LINE_LOGIN_CHANNEL_ID || "";
-// 将来の使用のために保持（現在は未使用）
-// @ts-ignore
-const LINE_LOGIN_CHANNEL_SECRET = process.env.LINE_LOGIN_CHANNEL_SECRET || "";
-
-// LINE IDトークン検証エンドポイント
-const LINE_TOKEN_VERIFY_URL = "https://api.line.me/oauth2/v2.1/verify";
-
 /**
- * LINEのIDトークンを検証し、Firebaseのカスタムトークンを生成する
- * リージョン: asia-northeast1（東京）
+ * LINE IDトークンを検証し、Firebaseカスタムトークンを発行する
  */
 export const createCustomToken = onRequest(async (req, res) => {
-    // CORSヘッダーを設定
-    res.set("Access-Control-Allow-Origin", "*");
-    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+  // CORSヘッダーを設定
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
 
-    // OPTIONSリクエスト（プリフライト）への対応
-    if (req.method === "OPTIONS") {
-      res.status(204).send("");
+  // OPTIONSリクエスト（プリフライト）への対応
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  // POSTリクエストのみを受け付ける
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method Not Allowed. Use POST." });
+    return;
+  }
+
+  try {
+    // 1. リクエストボディから IDトークンを取得
+    const idToken = req.body.idToken;
+    if (!idToken) {
+      logger.warn('ID token is missing');
+      res.status(400).json({ error: 'ID token is required' });
       return;
     }
 
-    // POSTリクエストのみを受け付ける
-    if (req.method !== "POST") {
-      res.status(405).json({ error: "Method Not Allowed. Use POST." });
+    // 2. LINEサーバーでIDトークンを検証
+    const lineClientId = process.env.LINE_LOGIN_CHANNEL_ID || "";
+    if (!lineClientId) {
+      logger.error('LINE_LOGIN_CHANNEL_ID is not set');
+      res.status(500).json({ error: 'Server configuration error' });
       return;
     }
 
-    try {
-      // リクエストボディからIDトークンを取得
-      const { idToken } = req.body;
+    const params = new URLSearchParams();
+    params.append('id_token', idToken);
+    params.append('client_id', lineClientId);
 
-      if (!idToken) {
-        res.status(400).json({ error: "idToken is required" });
-        return;
-      }
+    const lineVerifyResponse = await axios.post(
+      'https://api.line.me/oauth2/v2.1/verify',
+      params,
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
 
-      // LINE_LOGIN_CHANNEL_IDが設定されていない場合
-      if (!LINE_LOGIN_CHANNEL_ID) {
-        console.error("LINE_LOGIN_CHANNEL_ID is not configured");
-        res.status(500).json({ error: "Server configuration error" });
-        return;
-      }
+    const lineProfile = lineVerifyResponse.data;
+    const lineUserId = lineProfile.sub; // LINEのUserID
 
-      // LINEのIDトークンを検証
-      console.log("Verifying LINE ID token...");
-      const verifyResponse = await axios.post(
-        LINE_TOKEN_VERIFY_URL,
-        new URLSearchParams({
-          id_token: idToken,
-          client_id: LINE_LOGIN_CHANNEL_ID,
-        }),
-        {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        }
-      );
+    logger.info(`LINE token verified for user: ${lineUserId}`);
 
-      // 検証結果からLINEユーザーIDを取得
-      const lineUserId = verifyResponse.data.sub;
-      const userName = verifyResponse.data.name || "Unknown User";
-      const userPicture = verifyResponse.data.picture || "";
-      const userEmail = verifyResponse.data.email || "";
+    // 3. Firebaseカスタムトークンを生成
+    const firebaseToken = await admin.auth().createCustomToken(lineUserId);
 
-      if (!lineUserId) {
-        res.status(401).json({ error: "Invalid ID token" });
-        return;
-      }
+    // 4. Firestoreにユーザー情報を保存/更新
+    const userRef = db.collection('users').doc(lineUserId);
+    const userDoc = await userRef.get();
 
-      console.log(`LINE user authenticated: ${lineUserId}`);
+    const userData = {
+      lineUserId: lineUserId,
+      displayName: lineProfile.name || "Unknown User",
+      pictureUrl: lineProfile.picture || "",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
 
-      // Firestoreにユーザー情報を保存または更新
-      const userRef = db.collection("users").doc(lineUserId);
-      const userDoc = await userRef.get();
-
-      if (!userDoc.exists) {
-        // 新規ユーザーの場合
-        await userRef.set({
-          lineUserId,
-          displayName: userName,
-          pictureUrl: userPicture,
-          email: userEmail,
-          role: "user", // デフォルトは一般ユーザー
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        console.log(`New user created: ${lineUserId}`);
-      } else {
-        // 既存ユーザーの場合は情報を更新
-        await userRef.update({
-          displayName: userName,
-          pictureUrl: userPicture,
-          email: userEmail,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        console.log(`User updated: ${lineUserId}`);
-      }
-
-      // Firebaseカスタムトークンを生成
-      const firebaseToken = await admin.auth().createCustomToken(lineUserId);
-
-      console.log(`Firebase custom token created for user: ${lineUserId}`);
-
-      // クライアントにトークンを返却
-      res.status(200).json({
-        firebaseToken,
-        user: {
-          uid: lineUserId,
-          displayName: userName,
-          pictureUrl: userPicture,
-          email: userEmail,
-        },
+    if (!userDoc.exists) {
+      // 新規ユーザー
+      await userRef.set({
+        ...userData,
+        role: 'user',
+        currentBalance: 0,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
-    } catch (error: any) {
-      console.error("Error in createCustomToken:", error);
-
-      // LINEのトークン検証エラー
-      if (error.response) {
-        console.error("LINE API error:", error.response.data);
-        res.status(401).json({
-          error: "LINE token verification failed",
-          details: error.response.data,
-        });
-        return;
-      }
-
-      // その他のエラー
-      res.status(500).json({
-        error: "Internal Server Error",
-        message: error.message,
-      });
+    } else {
+      // 既存ユーザー
+      await userRef.update(userData);
     }
-  });
+
+    const updatedUserDoc = await userRef.get();
+    const fullUserData = updatedUserDoc.data();
+
+    logger.info(`Successfully created token for user: ${lineUserId}`);
+
+    // 5. 成功レスポンスを返す
+    res.status(200).json({
+      firebaseToken: firebaseToken,
+      user: fullUserData,
+    });
+
+  } catch (error: any) {
+    logger.error('Error creating custom token:', error);
+    if (error.response) {
+      logger.error('Error response from LINE:', error.response.data);
+      res.status(401).json({ error: 'Failed to verify LINE token', details: error.response.data });
+    } else {
+      res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+  }
+});
 
 // ============================
 // LINE Bot Webhook (Messaging API)

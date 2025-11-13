@@ -264,33 +264,44 @@ const UserDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-        <div className="w-12 h-12 border-4 border-gray-200 border-t-primary rounded-full animate-spin mb-4"></div>
-        <p className="text-gray-600">読み込み中...</p>
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-purple-50 to-secondary-50 flex flex-col items-center justify-center">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-primary-200 border-t-primary-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-secondary-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1s' }}></div>
+        </div>
+        <p className="mt-6 text-gray-700 font-medium animate-pulse">データを読み込んでいます...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-purple-50 to-secondary-50 pb-8">
       {/* ヘッダー */}
-      <div className="bg-gradient-to-br from-primary to-secondary text-white p-8 shadow-lg">
-        <div className="max-w-7xl mx-auto flex items-center gap-4">
-          {userData?.pictureUrl && (
-            <img
-              src={userData.pictureUrl}
-              alt={userData.displayName}
-              className="w-16 h-16 rounded-full border-4 border-white shadow-lg"
-            />
-          )}
-          <div>
-            <h2 className="text-2xl font-semibold mb-1">{userData?.displayName || 'User'}</h2>
-            <p className="text-lg font-medium">
-              未払い額:
-              <span className={`ml-2 font-bold ${userData && userData.currentBalance < 0 ? 'text-red-200' : ''}`}>
-                {formatPrice(userData?.currentBalance || 0)}
-              </span>
-            </p>
+      <div className="relative bg-gradient-to-r from-primary-600 via-purple-600 to-secondary-600 text-white overflow-hidden">
+        <div className="absolute inset-0 bg-black opacity-10"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center gap-6 animate-fade-in">
+            {userData?.pictureUrl && (
+              <img
+                src={userData.pictureUrl}
+                alt={userData.displayName}
+                className="w-20 h-20 rounded-full border-4 border-white shadow-2xl ring-4 ring-white/30"
+              />
+            )}
+            <div>
+              <h2 className="text-3xl font-bold mb-2 drop-shadow-md">{userData?.displayName || 'User'}</h2>
+              <div className="flex items-center gap-3 text-lg font-medium">
+                <span className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+                  未払い額:
+                  <span className={`ml-2 font-bold ${userData && userData.currentBalance < 0 ? 'text-red-200' : 'text-green-200'}`}>
+                    {formatPrice(userData?.currentBalance || 0)}
+                  </span>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -298,45 +309,72 @@ const UserDashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
         {/* メッセージ表示 */}
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg shadow">
-            <p className="text-red-800 font-medium">❌ {error}</p>
+          <div className="bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 p-4 rounded-xl shadow-soft animate-slide-up">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">❌</span>
+              <p className="text-red-800 font-medium">{error}</p>
+            </div>
           </div>
         )}
         {successMessage && (
-          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow">
-            <p className="text-green-800 font-medium">✅ {successMessage}</p>
+          <div className="bg-gradient-to-r from-green-50 to-emerald-100 border-l-4 border-green-500 p-4 rounded-xl shadow-soft animate-slide-up">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">✅</span>
+              <p className="text-green-800 font-medium">{successMessage}</p>
+            </div>
           </div>
         )}
 
         {/* お菓子一覧 */}
-        <section className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4">🍭 お菓子一覧</h3>
+        <section className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-soft p-8 border border-white">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-4xl animate-bounce-subtle">🍭</span>
+            <h3 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">お菓子一覧</h3>
+          </div>
           {candies.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">現在、利用可能なお菓子がありません</p>
+            <div className="text-center py-16">
+              <span className="text-6xl mb-4 block opacity-20">🍪</span>
+              <p className="text-gray-500 text-lg">現在、利用可能なお菓子がありません</p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {candies.map(candy => (
-                <div key={candy.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                <div key={candy.id} className="group bg-white rounded-2xl overflow-hidden shadow-soft hover:shadow-glow hover:scale-105 transition-all duration-300 border border-gray-100 animate-scale-in">
                   {candy.imageUrl && (
-                    <div className="h-48 overflow-hidden bg-gray-100">
-                      <img src={candy.imageUrl} alt={candy.name} className="w-full h-full object-cover" />
+                    <div className="h-52 overflow-hidden bg-gradient-to-br from-primary-100 to-secondary-100 relative">
+                      <img src={candy.imageUrl} alt={candy.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                      {candy.stock <= 5 && (
+                        <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">
+                          残りわずか
+                        </div>
+                      )}
                     </div>
                   )}
-                  <div className="p-4">
-                    <h4 className="text-lg font-semibold text-gray-800 mb-2">{candy.name}</h4>
-                    {candy.description && <p className="text-sm text-gray-600 mb-3">{candy.description}</p>}
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-xl font-bold text-primary">{formatPrice(candy.price)}</span>
-                      <span className={`text-sm font-medium ${candy.stock <= 5 ? 'text-red-600' : 'text-gray-600'}`}>
-                        在庫: {candy.stock}個
+                  <div className="p-5">
+                    <h4 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-primary-600 transition-colors">{candy.name}</h4>
+                    {candy.description && <p className="text-sm text-gray-600 mb-4 line-clamp-2">{candy.description}</p>}
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">{formatPrice(candy.price)}</span>
+                      <span className={`text-sm font-semibold px-3 py-1 rounded-full ${candy.stock <= 5 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                        在庫 {candy.stock}個
                       </span>
                     </div>
                     <button
-                      className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                       onClick={() => handleEatCandy(candy)}
                       disabled={candy.stock === 0 || eatingLoading === candy.id}
                     >
-                      {eatingLoading === candy.id ? '処理中...' : '食べた'}
+                      {eatingLoading === candy.id ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          処理中...
+                        </span>
+                      ) : (
+                        '🍬 食べた'
+                      )}
                     </button>
                   </div>
                 </div>
@@ -346,24 +384,27 @@ const UserDashboard: React.FC = () => {
         </section>
 
         {/* リクエスト */}
-        <section className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-2xl font-bold text-gray-800">📝 リクエスト</h3>
+        <section className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-soft p-8 border border-white">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">📝</span>
+              <h3 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">リクエスト</h3>
+            </div>
             <button
-              className="bg-secondary hover:bg-opacity-90 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+              className="bg-gradient-to-r from-secondary-500 to-purple-600 hover:from-secondary-600 hover:to-purple-700 text-white font-bold py-2 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5"
               onClick={() => setShowRequestForm(!showRequestForm)}
             >
-              {showRequestForm ? 'キャンセル' : '新しいリクエスト'}
+              {showRequestForm ? '✕ キャンセル' : '+ 新しいリクエスト'}
             </button>
           </div>
 
           {showRequestForm && (
-            <form onSubmit={handleSubmitRequest} className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">お菓子名 *</label>
+            <form onSubmit={handleSubmitRequest} className="mb-6 p-6 bg-gradient-to-br from-primary-50 to-secondary-50 rounded-xl border-2 border-primary-200 animate-slide-up">
+              <div className="mb-5">
+                <label className="block text-sm font-bold text-gray-700 mb-2">お菓子名 *</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all"
                   value={requestForm.candyName}
                   onChange={(e) => setRequestForm({ ...requestForm, candyName: e.target.value })}
                   placeholder="例: ポテトチップス のり塩"
