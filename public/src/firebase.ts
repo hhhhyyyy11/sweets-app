@@ -3,15 +3,14 @@ import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Firebase設定オブジェクト
-// 注: 以下の値は実際のFirebaseプロジェクトの設定に置き換えてください
-export const firebaseConfig = {
-  apiKey: "AIzaSyC2lAhkr62TXFbnAEEvoI-qD-gPAjSLlkY",
-  authDomain: "tamaki-sweets.firebaseapp.com",
-  projectId: "tamaki-sweets",
-  storageBucket: "tamaki-sweets.firebasestorage.app",
-  messagingSenderId: "294744762867",
-  appId: "1:294744762867:web:6e97d35b43b03d6a914a86",
-  measurementId: "G-SP11372FJS"
+const firebaseConfig = {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
 // Firebase初期化
