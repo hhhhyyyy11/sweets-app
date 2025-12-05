@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
 import { onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger, setGlobalOptions } from "firebase-functions/v2";
@@ -12,8 +13,10 @@ import { URLSearchParams } from 'url';
 setGlobalOptions({ region: "asia-northeast2" });
 
 // Firebase Admin初期化
-admin.initializeApp();
-const db = admin.firestore();
+admin.initializeApp({
+  projectId: "tamaki-sweets"
+});
+const db = getFirestore("tamaki-sweets");
 
 // LINE Bot設定 (デプロイ時はダミー値、実行時に環境変数から取得)
 const lineConfig = {
@@ -658,6 +661,7 @@ export const createCustomToken = onRequest(async (req, res) => {
       res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   }
+  console.log("Update check");
 });
 
 // ============================

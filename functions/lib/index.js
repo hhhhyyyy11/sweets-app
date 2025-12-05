@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlyReminder = exports.lineBotWebhook = exports.createCustomToken = exports.eatCandy = exports.api = exports.lineWebhook = void 0;
 const admin = __importStar(require("firebase-admin"));
+const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const v2_1 = require("firebase-functions/v2");
@@ -49,8 +50,10 @@ const url_1 = require("url");
 // グローバル設定
 (0, v2_1.setGlobalOptions)({ region: "asia-northeast2" });
 // Firebase Admin初期化
-admin.initializeApp();
-const db = admin.firestore();
+admin.initializeApp({
+    projectId: "tamaki-sweets"
+});
+const db = (0, firestore_1.getFirestore)("tamaki-sweets");
 // LINE Bot設定 (デプロイ時はダミー値、実行時に環境変数から取得)
 const lineConfig = {
     channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || "DUMMY_TOKEN_FOR_DEPLOYMENT",
@@ -603,6 +606,7 @@ exports.createCustomToken = (0, https_1.onRequest)(async (req, res) => {
             res.status(500).json({ error: 'Internal server error', details: error.message });
         }
     }
+    console.log("Update check");
 });
 // ============================
 // LINE Bot Webhook (Messaging API)
